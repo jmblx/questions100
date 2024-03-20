@@ -2,11 +2,12 @@ from io import BytesIO
 
 import pandas as pd
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func, delete, and_
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_async_session
+from redis_config import get_redis
 from questions.models import Category, Question
 
 router = APIRouter(prefix="/questions", tags=["questions"])
@@ -44,32 +45,40 @@ async def create_upload_file(file: UploadFile = File(), session: AsyncSession = 
         return {"message": "Data uploaded successfully"}
 
 
-@router.get("/get_random/{cat_id}")
-async def get_random_question(cat_id: int, session: AsyncSession = Depends(get_async_session)):
+@router.get("/get_random/{cat_id}/{user_id}")
+async def get_random_question(
+        cat_id: int,
+        user_id: str,
+        session: AsyncSession = Depends(get_async_session),
+        redis=Depends(get_redis)
+):
     try:
+        redis_key = f"{user_id}:{cat_id}"
+
+        viewed_questions = await redis.smembers(redis_key)
+        viewed_questions = {int(q) for q in viewed_questions if q.isdigit()}
         random_question_query = await session.execute(
-            select(Question).where(Question.category_id == cat_id).order_by(func.random()).limit(1)
+            select(Question)
+            .where(and_(Question.category_id == cat_id, ~Question.id.in_(viewed_questions)))
+            .order_by(func.random())
+            .limit(1)
         )
         random_question = random_question_query.scalars().first()
-
+        await redis.sadd(redis_key, str(random_question.id))
         if random_question is None:
-            raise HTTPException(status_code=404, detail="Question not found")
+            await redis.delete(redis_key)
+            raise HTTPException(status_code=404, detail="No more new questions in this category")
 
-        stmt = (
-            delete(Question).where(Question.id == random_question.id)
-        )
-        await session.execute(stmt)
-        await session.commit()
+        await redis.sadd(redis_key, str(random_question.id))
+
         return {
             "id": random_question.id,
-            "initials": random_question.initials,
-            "place": random_question.place,
-            "position": random_question.position,
             "text": random_question.text,
             "category_id": random_question.category_id
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @router.get("/cats")

@@ -40,16 +40,10 @@ def get_keyboard(
 
 default_kb = get_keyboard(
     "загрузить вопросы",
-    "получить вопрос",
+    "/random_question",
     placeholder="Меню добавления рецепта",
     sizes=(1, 2)
 )
-
-
-async def admin_check(
-    message
-):
-    return str(message.from_user.id) in ADMIN_LIST
 
 
 def change_type_kb(cocktail_id):

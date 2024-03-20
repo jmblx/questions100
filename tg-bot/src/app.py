@@ -28,7 +28,7 @@ bot = Bot(default=bot_properties, token=os.getenv('TOKEN'))
 bot.my_admins_list = []
 
 storage = MemoryStorage()
-# При создании Dispatcher передайте storage:
+
 dp = Dispatcher(storage=storage)
 
 dp.include_router(delete_recipe_router)
@@ -40,7 +40,7 @@ async def command_start_handler(message: Message):
         """
 Привет! Я могу отправить вопросы по категории и получать их от других пользователей.
         """,
-        reply_markup=default_kb()
+        reply_markup=default_kb
     )
 
 
