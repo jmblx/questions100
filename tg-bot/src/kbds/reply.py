@@ -39,7 +39,7 @@ def get_keyboard(
 
 
 default_kb = get_keyboard(
-    "загрузить вопросы",
+    "/upload_questions",
     "/random_question",
     placeholder="Меню добавления рецепта",
     sizes=(1, 2)

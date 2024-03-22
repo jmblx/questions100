@@ -22,8 +22,7 @@ services:
     networks:
       - custom
   fastapi_app:
-    build:
-      context: ./questions/.
+    image: menoitami/questions-api:latest
     env_file:
       - questions/.env-non-dev
     container_name: fastapi_app
@@ -39,9 +38,7 @@ services:
       - redis
   bot:
     restart: on-failure
-    build:
-      context: tg-bot
-      dockerfile: Dockerfile
+    image: menoitami/questions-bot:latest
     container_name: "bot"
     env_file:
       - ./tg-bot/.env-non-dev

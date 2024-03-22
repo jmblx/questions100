@@ -41,7 +41,9 @@ async def process_category_id(callback_query: types.CallbackQuery, state: FSMCon
             if response.status == 404:
                 text = data.get('detail', 'No more new questions in this category')
             else:
-                text = f"Вопрос: {str(data)}"
+                text = \
+f"ФИО: {data.get('initials', 'Неизвестно')}\n\nМесто работы/учебы: {data.get('place', 'Неизвестно')}\n\n" \
+f"Должность/курс: {data.get('position', 'Неизвестно')}\n\nВопрос: {data.get('text', 'Неизвестно')}"
     await callback_query.message.answer(text)
     await callback_query.answer()
 
@@ -67,7 +69,7 @@ async def upload_file(message: types.Message, state: FSMContext):
     file_path = file.file_path
 
     async with aiohttp.ClientSession() as session:
-        url = "http://{os.getenv('BACKEND')}:8000/questions/uploadfile/"
+        url = f"http://{os.getenv('BACKEND')}:8000/questions/uploadfile/"
         file_content = await message.bot.download_file(file_path)
         async with session.post(url, data={"file": file_content}) as response:
             if response.status == 200:

@@ -57,6 +57,15 @@ async def get_random_question(
 
         viewed_questions = await redis.smembers(redis_key)
         viewed_questions = {int(q) for q in viewed_questions if q.isdigit()}
+
+        # Получаем количество оставшихся вопросов
+        total_questions_query = await session.execute(
+            select(func.count(Question.id))
+            .where(and_(Question.category_id == cat_id, ~Question.id.in_(viewed_questions)))
+        )
+        remaining_questions_count = total_questions_query.scalar()
+
+        # Получаем случайный вопрос
         random_question_query = await session.execute(
             select(Question)
             .where(and_(Question.category_id == cat_id, ~Question.id.in_(viewed_questions)))
@@ -64,7 +73,7 @@ async def get_random_question(
             .limit(1)
         )
         random_question = random_question_query.scalars().first()
-        await redis.sadd(redis_key, str(random_question.id))
+
         if random_question is None:
             await redis.delete(redis_key)
             raise HTTPException(status_code=404, detail="No more new questions in this category")
@@ -74,10 +83,15 @@ async def get_random_question(
         return {
             "id": random_question.id,
             "text": random_question.text,
-            "category_id": random_question.category_id
+            "initials": random_question.initials,
+            "place": random_question.place,
+            "position": random_question.position,
+            "category_id": random_question.category_id,
+            "remaining_questions": remaining_questions_count
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 
